@@ -2,7 +2,7 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
 const app = express();
 
@@ -96,11 +96,26 @@ async function run() {
       const result = await instructorCollection.find().toArray();
       res.send(result);
     });
+    //my classlist route
+    app.get("/classlist", verifyJWT, async (req, res) => {
+      const email = req.query?.email;
+      const query = { studentEmail: email };
+      const result = await classlistCollection.find(query).toArray();
+      res.send(result);
+    });
 
     //post routes
     app.post("/classlist", async (req, res) => {
       const course = req.body;
       const result = await classlistCollection.insertOne(course);
+      res.send(result);
+    });
+
+    //delete route
+    app.delete("/classlist/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await classlistCollection.deleteOne(query);
       res.send(result);
     });
 
