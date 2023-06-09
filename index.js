@@ -110,6 +110,19 @@ async function run() {
       res.send(result);
     });
 
+    app.patch("/users/role", async (req, res) => {
+      const email = req.query.email;
+      const role = req.query.role;
+      const filter = { email: email };
+      const updateDoc = {
+        $set: {
+          role: role,
+        },
+      };
+      const result = await userCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
     //classes routes
     app.get("/classes", async (req, res) => {
       const query = req.query?.limit;
