@@ -46,6 +46,7 @@ async function run() {
   try {
     client.connect();
     ///////////////////////////////////////////////////////////////////////
+    const userCollection = client.db("photographySchoolDB").collection("users");
     const classCollection = client
       .db("photographySchoolDB")
       .collection("classes");
@@ -66,7 +67,7 @@ async function run() {
       res.send({ token });
     });
 
-    // verify admin 
+    // verify admin
     const verifyAdmin = async (req, res, next) => {
       const email = req.decoded.email;
       const query = { email: email };
@@ -78,6 +79,23 @@ async function run() {
       }
       next();
     };
+
+    // user route
+    app.get("/users", verifyJWT, verifyAdmin, async (req, res) => {
+      const result = await userCollection.find().toArray();
+      res.send(result);
+    });
+
+    app.post("/users", async (req, res) => {
+      const user = req.body;
+      const query = { email: user.email };
+      const exitingUser = await userCollection.findOne(query);
+      if (exitingUser) {
+        return res.send({ message: "user already exit" });
+      }
+      const result = await userCollection.insertOne(user);
+      res.send(result);
+    });
 
     //classes routes
     app.get("/classes", async (req, res) => {
