@@ -52,6 +52,9 @@ async function run() {
     const instructorCollection = client
       .db("photographySchoolDB")
       .collection("instructors");
+    const classlistCollection = client
+      .db("photographySchoolDB")
+      .collection("classlist");
 
     //generate jwt token
     app.post("/jwt", (req, res) => {
@@ -81,7 +84,23 @@ async function run() {
 
     //instructors route
     app.get("/instructors", async (req, res) => {
+      const query = req.query?.limit;
+      if (query) {
+        const result = await instructorCollection
+          .find()
+          .limit(parseInt(query))
+          .toArray();
+        res.send(result);
+        return;
+      }
       const result = await instructorCollection.find().toArray();
+      res.send(result);
+    });
+
+    //post routes
+    app.post("/classlist", async (req, res) => {
+      const course = req.body;
+      const result = await classlistCollection.insertOne(course);
       res.send(result);
     });
 
