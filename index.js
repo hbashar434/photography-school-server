@@ -3,9 +3,9 @@ const cors = require("cors");
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const stripe = require("stripe")(process.env.PAYMENT_SECRET_KEY);
 
 const app = express();
-
 const port = process.env.PORT || 5000;
 
 //middleware
@@ -56,6 +56,9 @@ async function run() {
     const classlistCollection = client
       .db("photographySchoolDB")
       .collection("classlist");
+    const paymentCollection = client
+      .db("photographySchoolDB")
+      .collection("payments");
 
     //generate jwt token
     app.post("/jwt", (req, res) => {
@@ -153,11 +156,19 @@ async function run() {
       const result = await instructorCollection.find().toArray();
       res.send(result);
     });
+
     //my classlist route
     app.get("/classlist", verifyJWT, async (req, res) => {
       const email = req.query?.email;
-      const query = { studentEmail: email };
+      const query = { studentEmail: email, payment: false };
       const result = await classlistCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    app.get("/classlist/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await classlistCollection.findOne(query);
       res.send(result);
     });
 
@@ -174,6 +185,30 @@ async function run() {
       const query = { _id: new ObjectId(id) };
       const result = await classlistCollection.deleteOne(query);
       res.send(result);
+    });
+
+    // create payment intent
+    app.post("/create-payment-intent", verifyJWT, async (req, res) => {
+      const { price } = req.body;
+      const amount = parseInt(price * 100);
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
+
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
+    });
+
+    app.post("/payments", verifyJWT, async (req, res) => {
+      const payment = req.body;
+      const insertResult = await paymentCollection.insertOne(payment);
+      const query = { _id: new ObjectId(payment.courseId) };
+      const deleteResult = await classlistCollection.deleteOne(query);
+
+      res.send({ insertResult, deleteResult });
     });
 
     ///////////////////////////////////////////////////////////////////////
