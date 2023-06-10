@@ -113,6 +113,17 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/users/instructor/:email", verifyJWT, async (req, res) => {
+      const email = req.params.email;
+      if (req.decoded.email !== email) {
+        res.send({ instructor: false });
+      }
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      const result = { instructor: user?.role === "instructor" };
+      res.send(result);
+    });
+
     app.patch("/users/role", async (req, res) => {
       const email = req.query.email;
       const role = req.query.role;
@@ -132,7 +143,7 @@ async function run() {
       if (query) {
         const result = await classCollection
           .find()
-          .sort({ enroll: -1 })
+          .sort({ enrolled: -1 })
           .limit(parseInt(query))
           .toArray();
         res.send(result);
