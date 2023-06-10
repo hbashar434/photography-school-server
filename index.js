@@ -160,7 +160,7 @@ async function run() {
     //my classlist route
     app.get("/classlist", verifyJWT, async (req, res) => {
       const email = req.query?.email;
-      const query = { studentEmail: email, payment: false };
+      const query = { studentEmail: email };
       const result = await classlistCollection.find(query).toArray();
       res.send(result);
     });
@@ -184,6 +184,24 @@ async function run() {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await classlistCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    //enroll classes route
+    app.get("/enrolled", verifyJWT, async (req, res) => {
+      const email = req.query?.email;
+      const sort = req.query?.sort;
+      if (sort) {
+        const query = { paymentEmail: email };
+        const result = await paymentCollection
+          .find(query)
+          .sort({ date: sort })
+          .toArray();
+        res.send(result);
+        return;
+      }
+      const query = { paymentEmail: email };
+      const result = await paymentCollection.find(query).toArray();
       res.send(result);
     });
 
