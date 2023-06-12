@@ -78,7 +78,20 @@ async function run() {
       if (user?.role !== "admin") {
         return res
           .status(403)
-          .send({ error: true, message: "forbidden message" });
+          .send({ error: true, message: "forbidden access" });
+      }
+      next();
+    };
+
+    // verify Instructor
+    const verifyInstructor = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      if (user?.role !== "instructor") {
+        return res
+          .status(403)
+          .send({ error: true, message: "forbidden access" });
       }
       next();
     };
@@ -102,11 +115,9 @@ async function run() {
 
     app.get("/users/admin/:email", verifyJWT, async (req, res) => {
       const email = req.params.email;
-
       if (req.decoded.email !== email) {
         res.send({ admin: false });
       }
-
       const query = { email: email };
       const user = await userCollection.findOne(query);
       const result = { admin: user?.role === "admin" };
@@ -153,6 +164,46 @@ async function run() {
       res.send(result);
     });
 
+    // get classes by id
+    app.get("/updateclass/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await classCollection.findOne(query);
+      res.send(result);
+    });
+
+    //instructor post
+    app.post("/classes", verifyJWT, async (req, res) => {
+      const course = req.body;
+      const result = await classCollection.insertOne(course);
+      res.send(result);
+    });
+
+    //update class by id
+    app.patch("/classes/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const course = req.body;
+      const updateDoc = {
+        $set: {
+          ...course,
+        },
+      };
+      const result = await classCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
+    //instructor class get
+    app.get("/myclasses", verifyJWT, async (req, res) => {
+      const email = req.query?.email;
+      const query = { instructorEmail: email };
+      const result = await classCollection
+        .find(query)
+        .sort({ date: -1 })
+        .toArray();
+      res.send(result);
+    });
+
     //instructors route
     app.get("/instructors", async (req, res) => {
       const query = req.query?.limit;
@@ -176,14 +227,14 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/classlist/:id", async (req, res) => {
+    app.get("/classlist/:id", verifyJWT, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await classlistCollection.findOne(query);
       res.send(result);
     });
 
-    //post routes
+    //post routes add class in list
     app.post("/classlist", async (req, res) => {
       const course = req.body;
       const result = await classlistCollection.insertOne(course);
@@ -201,18 +252,11 @@ async function run() {
     //enroll classes route
     app.get("/enrolled", verifyJWT, async (req, res) => {
       const email = req.query?.email;
-      const sort = req.query?.sort;
-      if (sort) {
-        const query = { paymentEmail: email };
-        const result = await paymentCollection
-          .find(query)
-          .sort({ date: sort })
-          .toArray();
-        res.send(result);
-        return;
-      }
       const query = { paymentEmail: email };
-      const result = await paymentCollection.find(query).toArray();
+      const result = await paymentCollection
+        .find(query)
+        .sort({ date: -1 })
+        .toArray();
       res.send(result);
     });
 
