@@ -23,9 +23,7 @@ const verifyJWT = (req, res, next) => {
   const token = authorization.split(" ")[1];
   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
     if (err) {
-      return res
-        .status(401)
-        .send({ error: true, message: "unauthorized access" });
+      return res.status(403).send({ error: true, message: "forbidden access" });
     }
     req.decoded = decoded;
     next();
@@ -272,7 +270,7 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/classlist/:id", verifyJWT, async (req, res) => {
+    app.get("/myclasslist/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await classlistCollection.findOne(query);
@@ -322,11 +320,24 @@ async function run() {
 
     app.post("/payments", verifyJWT, async (req, res) => {
       const payment = req.body;
+      const query = { _id: new ObjectId(payment.enrolledId) };
+      const filter = { _id: new ObjectId(payment.classId) };
+      const classInfo = await classCollection.findOne(filter);
+
+      if (classInfo.availableSeats <= 0) {
+        res.status(400).send({ error: "No available seats" });
+        return;
+      }
+
       const insertResult = await paymentCollection.insertOne(payment);
-      const query = { _id: new ObjectId(payment.courseId) };
+
+      const updateResult = await classCollection.updateOne(filter, {
+        $inc: { availableSeats: -1, enrolled: 1 },
+      });
+
       const deleteResult = await classlistCollection.deleteOne(query);
 
-      res.send({ insertResult, deleteResult });
+      res.send({ insertResult, updateResult, deleteResult });
     });
 
     ///////////////////////////////////////////////////////////////////////
