@@ -136,8 +136,8 @@ async function run() {
     });
 
     app.patch("/users/role", async (req, res) => {
-      const email = req.query.email;
-      const role = req.query.role;
+      const email = req.query?.email;
+      const role = req.query?.role;
       const filter = { email: email };
       const updateDoc = {
         $set: {
@@ -151,16 +151,28 @@ async function run() {
     //classes routes
     app.get("/classes", async (req, res) => {
       const query = req.query?.limit;
+      const approvedClasses = req.query?.approved;
+      const filter = { status: "approved" };
       if (query) {
         const result = await classCollection
-          .find()
+          .find(filter)
           .sort({ enrolled: -1 })
           .limit(parseInt(query))
           .toArray();
         res.send(result);
         return;
       }
-      const result = await classCollection.find().toArray();
+
+      if (approvedClasses) {
+        const result = await classCollection
+          .find(filter)
+          .sort({ date: -1 })
+          .toArray();
+        res.send(result);
+        return;
+      }
+
+      const result = await classCollection.find().sort({ date: -1 }).toArray();
       res.send(result);
     });
 
@@ -187,6 +199,20 @@ async function run() {
       const updateDoc = {
         $set: {
           ...course,
+        },
+      };
+      const result = await classCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
+    //update status by admin
+    app.patch("/classstatus/:id", async (req, res) => {
+      const id = req.params.id;
+      const status = req.query?.status;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          status: status,
         },
       };
       const result = await classCollection.updateOne(filter, updateDoc);
