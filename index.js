@@ -133,6 +133,17 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/users/student/:email", verifyJWT, async (req, res) => {
+      const email = req.params.email;
+      if (req.decoded.email !== email) {
+        res.send({ student: false });
+      }
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      const result = { student: user?.role === "student" };
+      res.send(result);
+    });
+
     app.patch("/users/role", async (req, res) => {
       const email = req.query?.email;
       const role = req.query?.role;
