@@ -251,14 +251,14 @@ async function run() {
     app.get("/instructors", async (req, res) => {
       const query = req.query?.limit;
       if (query) {
-        const result = await instructorCollection
+        const result = await userCollection
           .find()
           .limit(parseInt(query))
           .toArray();
         res.send(result);
         return;
       }
-      const result = await instructorCollection.find().toArray();
+      const result = await userCollection.find().toArray();
       res.send(result);
     });
 
