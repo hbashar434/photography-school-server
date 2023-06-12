@@ -219,6 +219,25 @@ async function run() {
       res.send(result);
     });
 
+    //send feedback by admin
+    app.put("/feedback/:id", async (req, res) => {
+      const id = req.params.id;
+      const { feedback } = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          feedback,
+        },
+      };
+      const result = await classCollection.updateOne(
+        filter,
+        updateDoc,
+        options
+      );
+      res.send(result);
+    });
+
     //instructor class get
     app.get("/myclasses", verifyJWT, async (req, res) => {
       const email = req.query?.email;
